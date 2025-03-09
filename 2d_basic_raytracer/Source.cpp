@@ -9,7 +9,8 @@
 #define WINDOW_HEIGHT 900
 #define COLOUR_W 0xffffffff
 #define COLOUR_BL 0x00000000
-#define NUM_RAYS 200
+#define NUM_RAYS 500
+#define DIRECTION_INCREMENT 5
 
 class Shape {
 public:
@@ -98,12 +99,20 @@ void drawRays(SDL_Surface* surface, Circle circle) {
 	}
 }
 
-void drawRays(SDL_Surface* surface, Circle circle, Circle blocker) {
+void drawRays(SDL_Surface* surface, Circle circle, std::vector<Circle*> blockers) {
 	std::vector<Ray> rays = generateRaySet(circle);
 	for (Ray ray : rays) {
 		double curr_x = ray.x_origin;
 		double curr_y = ray.y_origin;
-		while (curr_x >= 0 && curr_x <= WINDOW_WIDTH && curr_y >= 0 && curr_y <= WINDOW_HEIGHT && !blocker.intersects(curr_x, curr_y)) {
+		int escape = 0;
+		while (curr_x >= 0 && curr_x <= WINDOW_WIDTH && curr_y >= 0 && curr_y <= WINDOW_HEIGHT && !escape) {
+			escape = 0;
+			for (Circle* blocker : blockers) {
+				if ((*blocker).intersects(curr_x, curr_y)) {
+					escape = 1;
+				}
+			}
+			if (escape) { break; }
 			curr_x += cos(ray.angle);
 			curr_y += sin(ray.angle);
 			putPixel(surface, curr_x, curr_y, COLOUR_W);
@@ -124,8 +133,13 @@ int main(int argc, char* argv[]) {
 
 	SDL_Rect blankScreen = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
 
-	Circle rayOrigin = { 200, 200, 50 };
+
+	std::vector<Circle*> blockers;
+	Circle rayOrigin = { WINDOW_WIDTH/2, WINDOW_HEIGHT/2, 50 };
 	Circle rayBlocker = { 1300, WINDOW_HEIGHT / 2, 200 };
+	Circle rayBlocker2 = { 300, WINDOW_HEIGHT / 2, 200 };
+	blockers.push_back(&rayBlocker);
+	blockers.push_back(&rayBlocker2);
 	//SDL_Rect rect = {200, 200, 200, 200};
 	//SDL_FillRect(surface, &rect, COLOUR_W);
 	//SDL_UpdateWindowSurface(window);
@@ -143,13 +157,37 @@ int main(int argc, char* argv[]) {
 				case SDL_MOUSEMOTION:
 					rayOrigin.x = event.motion.x;
 					rayOrigin.y = event.motion.y;
+					break;
 
+				case SDL_KEYDOWN:
+					switch (event.key.keysym.sym) {
+						case SDLK_LEFT:
+							rayBlocker.x -= DIRECTION_INCREMENT;
+							break;
+
+						case SDLK_RIGHT:
+							rayBlocker.x += DIRECTION_INCREMENT;
+							break;
+
+						case SDLK_UP:
+							rayBlocker.y -= DIRECTION_INCREMENT;
+							break;
+
+						case SDLK_DOWN:
+							rayBlocker.y += DIRECTION_INCREMENT;
+							break;
+						
+						default:
+							break;
+					}
 			}
+
 		}
 		SDL_FillRect(surface, &blankScreen, COLOUR_BL);
 		drawCircle(surface, rayOrigin);
 		drawCircle(surface, rayBlocker);
-		drawRays(surface, rayOrigin, rayBlocker);
+		drawCircle(surface, rayBlocker2);
+		drawRays(surface, rayOrigin, blockers);
 		SDL_UpdateWindowSurface(window);
 	}
 
