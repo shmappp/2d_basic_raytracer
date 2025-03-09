@@ -2,17 +2,30 @@
 #include <stdio.h>
 #include <iostream>
 #include <math.h>
+#include <vector>
+
 
 #define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 900
 #define COLOUR_W 0xffffffff
 #define COLOUR_BL 0x00000000
+#define NUM_RAYS 4
 
 struct Circle {
 	double x;
 	double y;
 	double radius;
 };
+
+struct Ray {
+	double x_origin, y_origin;
+	double angle;
+};
+
+std::ostream& operator<<(std::ostream& os, const Ray& ray) {
+	os << "Ray: x = " << ray.x_origin << ", y = " << ray.y_origin << ", angle (radians) = " << ray.angle << ", angle (deg) = " << ray.angle * 180/M_PI;
+	return os;
+}
 
 void drawRect(SDL_Surface* surface, SDL_Rect* rect) {
 	SDL_FillRect(surface, rect, COLOUR_W);
@@ -38,6 +51,24 @@ void drawCircle(SDL_Surface* surface, Circle circle) {
 	SDL_UnlockSurface(surface);
 }
 
+std::vector<Ray> generateRaySet(Circle circle) {
+	std::vector<Ray> rays;
+
+	double angleSlice = 2 * M_PI / NUM_RAYS; // in radians
+
+	for (int i = 0; i < NUM_RAYS; i++) {
+		Ray ray = {circle.x, circle.y, angleSlice*(i+1)};
+		rays.push_back(ray);
+		std::cout << 'Ray:' << ray << std::endl;
+	}
+
+	return rays;
+}
+
+void drawRays(SDL_Surface* surface, Circle circle) {
+	std::vector<Ray> rays = generateRaySet(circle);
+}
+
 int main(int argc, char* argv[]) {
 
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -48,7 +79,7 @@ int main(int argc, char* argv[]) {
 	SDL_Surface* surface = SDL_GetWindowSurface(window);
 
 	SDL_Rect blankScreen = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-	Circle circle = { 500, 200, 200 };
+	Circle circle = { 200, 200, 50 };
 	//SDL_Rect rect = {200, 200, 200, 200};
 	//SDL_FillRect(surface, &rect, COLOUR_W);
 	//SDL_UpdateWindowSurface(window);
@@ -71,6 +102,7 @@ int main(int argc, char* argv[]) {
 		}
 		SDL_FillRect(surface, &blankScreen, COLOUR_BL);
 		drawCircle(surface, circle);
+		drawRays(surface, circle);
 		SDL_UpdateWindowSurface(window);
 	}
 
