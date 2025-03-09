@@ -9,7 +9,7 @@
 #define WINDOW_HEIGHT 900
 #define COLOUR_W 0xffffffff
 #define COLOUR_BL 0x00000000
-#define NUM_RAYS 4
+#define NUM_RAYS 50
 
 struct Circle {
 	double x;
@@ -59,7 +59,6 @@ std::vector<Ray> generateRaySet(Circle circle) {
 	for (int i = 0; i < NUM_RAYS; i++) {
 		Ray ray = {circle.x, circle.y, angleSlice*(i+1)};
 		rays.push_back(ray);
-		std::cout << 'Ray:' << ray << std::endl;
 	}
 
 	return rays;
@@ -67,6 +66,15 @@ std::vector<Ray> generateRaySet(Circle circle) {
 
 void drawRays(SDL_Surface* surface, Circle circle) {
 	std::vector<Ray> rays = generateRaySet(circle);
+	for (Ray ray : rays) {
+		double curr_x = ray.x_origin;
+		double curr_y = ray.y_origin;
+		while (curr_x >= 0 && curr_x <= WINDOW_WIDTH && curr_y >= 0 && curr_y <= WINDOW_HEIGHT) {
+			curr_x += cos(ray.angle);
+			curr_y += sin(ray.angle);
+			putPixel(surface, curr_x, curr_y, COLOUR_W);
+		}
+	}
 }
 
 int main(int argc, char* argv[]) {
