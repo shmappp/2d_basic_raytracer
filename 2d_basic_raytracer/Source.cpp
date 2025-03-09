@@ -43,7 +43,9 @@ int main(int argc, char* argv[]) {
 					running = 0;
 					break;
 
-				//case SDL_MOUSEMOTION:
+				case SDL_MOUSEMOTION:
+					rect.x = event.motion.x;
+					rect.y = event.motion.y;
 
 			}
 		}
