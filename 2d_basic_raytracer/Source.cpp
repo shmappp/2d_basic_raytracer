@@ -1,22 +1,41 @@
 #include <SDL.h>
 #include <stdio.h>
 #include <iostream>
+#include <math.h>
 
-#define WINDOW_WIDTH 1920
-#define WINDOW_HEIGHT 1080
+#define WINDOW_WIDTH 1600
+#define WINDOW_HEIGHT 900
 #define COLOUR_W 0xffffffff
 #define COLOUR_BL 0x00000000
 
-struct Rectangle
-{
+struct Circle {
 	double x;
 	double y;
-	double length;
-	double height;
+	double radius;
 };
 
 void drawRect(SDL_Surface* surface, SDL_Rect* rect) {
 	SDL_FillRect(surface, rect, COLOUR_W);
+}
+
+void putPixel(SDL_Surface* surface, int x, int y, Uint32 colour) {
+	if (x < 0 || x >= surface->w || y < 0 || y >= surface->h) { return; }
+	Uint32* pixels = (Uint32*)surface->pixels;
+	pixels[(y * surface->w) + x] = colour;
+}
+
+void drawCircle(SDL_Surface* surface, Circle circle) {
+	SDL_LockSurface(surface);
+	for (double x = circle.x - circle.radius; x <= circle.x + circle.radius; x++) {
+		for (double y = circle.y - circle.radius; y <= circle.y + circle.radius; y++) {
+			double dist = sqrt(pow(x - circle.x, 2) + pow(y - circle.y, 2));
+			if (dist <= circle.radius) {
+				putPixel(surface, x, y, COLOUR_W);
+			}
+
+		}
+	}
+	SDL_UnlockSurface(surface);
 }
 
 int main(int argc, char* argv[]) {
@@ -29,7 +48,8 @@ int main(int argc, char* argv[]) {
 	SDL_Surface* surface = SDL_GetWindowSurface(window);
 
 	SDL_Rect blankScreen = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-	SDL_Rect rect = {200, 200, 200, 200};
+	Circle circle = { 500, 200, 200 };
+	//SDL_Rect rect = {200, 200, 200, 200};
 	//SDL_FillRect(surface, &rect, COLOUR_W);
 	//SDL_UpdateWindowSurface(window);
 
@@ -44,13 +64,13 @@ int main(int argc, char* argv[]) {
 					break;
 
 				case SDL_MOUSEMOTION:
-					rect.x = event.motion.x;
-					rect.y = event.motion.y;
+					circle.x = event.motion.x;
+					circle.y = event.motion.y;
 
 			}
 		}
 		SDL_FillRect(surface, &blankScreen, COLOUR_BL);
-		drawRect(surface, &rect);
+		drawCircle(surface, circle);
 		SDL_UpdateWindowSurface(window);
 	}
 
