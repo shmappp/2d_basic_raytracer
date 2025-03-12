@@ -10,7 +10,7 @@
 #define WINDOW_HEIGHT 900
 #define COLOUR_W 0xffffffff
 #define COLOUR_BL 0x00000000
-#define NUM_RAYS 500
+#define MAX_RAYS 2000
 #define DIRECTION_INCREMENT 5
 
 class Shape {
@@ -52,6 +52,7 @@ private:
 	SDL_Window* window;
 	SDL_Surface* surface;
 	std::vector<Circle*> blockers;
+	int rayCount = 200;
 	Circle rayOrigin;
 	Circle rayBlocker;
 	Circle rayBlocker2;
@@ -84,9 +85,9 @@ private:
 	std::vector<Ray> generateRaySet(Circle circle) {
 		std::vector<Ray> rays;
 
-		double angleSlice = 2 * M_PI / NUM_RAYS; // in radians
+		double angleSlice = 2 * M_PI / rayCount; // in radians
 
-		for (int i = 0; i < NUM_RAYS; i++) {
+		for (int i = 0; i < rayCount; i++) {
 			Ray ray = { circle.x, circle.y, angleSlice * (i + 1) };
 			rays.push_back(ray);
 		}
@@ -191,6 +192,12 @@ public:
 		blockers.push_back(&rayBlocker2);
 	}
 
+	void setRayCount(int rays) {
+		if (rays > 0 and rays <= MAX_RAYS) {
+			rayCount = rays;
+		}
+	}
+
 	bool init() {
 		if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 			std::cerr << "SDL_Init error: " << SDL_GetError() << std::endl;
@@ -211,8 +218,19 @@ public:
 	}
 };
 
+RayTracer* g_rayTracer = nullptr;
+
+extern "C" {
+	EMSCRIPTEN_KEEPALIVE void setCountRays(int rays) {
+		if (g_rayTracer) {
+			g_rayTracer->setRayCount(rays);
+		}
+	}
+}
+
 int main(int argc, char* argv[]) {
 	RayTracer raytracer;
+	g_rayTracer = &raytracer;
 	raytracer.run();
 	return 0;
 }

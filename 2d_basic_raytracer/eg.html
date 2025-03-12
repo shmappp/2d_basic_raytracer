@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ray Tracing with Emscripten</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #slider-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            color: white;
+        }
+
+        #rayCountLabel {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="slider-container">
+        <label id="rayCountLabel">Number of Rays: 200</label><br>
+        <input type="range" id="raySlider" min="1" max="2000" value="200">
+    </div>
+
+    <script src="raytracer.js"></script>
+    <script>
+        const raySlider = document.getElementById('raySlider');
+        const rayCountLabel = document.getElementById('rayCountLabel');
+
+        const canvas = document.getElementById('canvas');
+        canvas.width = 1600;
+        canvas.height = 900;
+        const ctx = canvas.getContext('2d');
+
+        Module['canvas'] = canvas;
+
+        raySlider.addEventListener('input', function () {
+            const rayCount = raySlider.value;
+            rayCountLabel.textContent = 'Number of Rays: ' + rayCount;
+            if (Module._setCountRays) {
+                Module._setCountRays(parseInt(rayCount, 10));
+            }
+        });
+
+        Module.onRuntimeInitialized = function () {
+            console.log("WebAssembly module loaded and ready.");
+        };
+    </script>
+</body>
+</html>
