@@ -3,6 +3,7 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
+#include <emscripten.h>
 
 
 #define WINDOW_WIDTH 1600
@@ -206,10 +207,7 @@ public:
 
 	void run() {
 		if (!init()) return;
-		while (running) {
-			processInput();
-			render();
-		}
+		emscripten_set_main_loop_arg(mainLoop, this, 0, 1);
 	}
 };
 
