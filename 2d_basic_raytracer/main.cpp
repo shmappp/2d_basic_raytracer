@@ -3,7 +3,9 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
-#include <emscripten.h>
+#ifdef __EMSCRIPTEN__
+	#include <emscripten.h>
+#endif
 
 
 #define WINDOW_WIDTH 1600
@@ -46,8 +48,6 @@ std::ostream& operator<<(std::ostream& os, const Ray& ray) {
 	return os;
 }
 
-
-
 class RayTracer {
 
 private:
@@ -57,6 +57,7 @@ private:
 	int rayCount;
 	Circle* lastBlocker;
 	Circle rayOrigin;
+	int running;
 
 	void drawRect(SDL_Surface* surface, SDL_Rect* rect) {
 		SDL_FillRect(surface, rect, COLOUR_W);
@@ -134,6 +135,7 @@ private:
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_QUIT:
+				running = 0;
 				break;
 
 			case SDL_MOUSEMOTION:
@@ -195,11 +197,12 @@ public:
 	RayTracer()
 		: rayOrigin(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 50),
 		  lastBlocker(new Circle(0, 0, 0)),
-		  rayCount(DEFAULT_RAY_COUNT)
+		  rayCount(DEFAULT_RAY_COUNT),
+		  running(1)
 	{}
 
 	void setRayCount(int rays) {
-		if (rays > 0 and rays <= MAX_RAYS) {
+		if (rays > 0 && rays <= MAX_RAYS) {
 			rayCount = rays;
 		}
 	}
@@ -220,12 +223,20 @@ public:
 
 	void run() {
 		if (!init()) return;
-		emscripten_set_main_loop_arg(mainLoop, this, 0, 1);
+		#ifdef __EMSCRIPTEN__
+			emscripten_set_main_loop_arg(mainLoop, this, 0, 1);
+		#else
+		while (running) {
+			mainLoop(this);
+		}
+		#endif
+
 	}
 };
 
 RayTracer* g_rayTracer = nullptr;
 
+#ifdef __EMSCRIPTEN__
 extern "C" {
 	EMSCRIPTEN_KEEPALIVE void setCountRays(int rays) {
 		if (g_rayTracer) {
@@ -233,6 +244,7 @@ extern "C" {
 		}
 	}
 }
+#endif
 
 int main(int argc, char* argv[]) {
 	RayTracer raytracer;
