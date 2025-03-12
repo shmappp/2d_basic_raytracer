@@ -12,6 +12,7 @@
 #define COLOUR_BL 0x00000000
 #define MAX_RAYS 2000
 #define DIRECTION_INCREMENT 5
+#define BLOCKER_SIZE 125
 
 class Shape {
 public:
@@ -53,10 +54,8 @@ private:
 	SDL_Surface* surface;
 	std::vector<Circle*> blockers;
 	int rayCount = 200;
+	Circle lastBlocker = Circle(0, 0, 0);
 	Circle rayOrigin;
-	Circle rayBlocker;
-	Circle rayBlocker2;
-	int running;
 
 	void drawRect(SDL_Surface* surface, SDL_Rect* rect) {
 		SDL_FillRect(surface, rect, COLOUR_W);
@@ -134,7 +133,6 @@ private:
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_QUIT:
-				running = 0;
 				break;
 
 			case SDL_MOUSEMOTION:
@@ -142,22 +140,30 @@ private:
 				rayOrigin.y = event.motion.y;
 				break;
 
+			case SDL_MOUSEBUTTONDOWN:
+				blockers.push_back(new Circle(event.motion.x, event.motion.y, BLOCKER_SIZE));
+				break;
+
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym) {
 				case SDLK_LEFT:
-					rayBlocker.x -= DIRECTION_INCREMENT;
+					lastBlocker.x -= DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_RIGHT:
-					rayBlocker.x += DIRECTION_INCREMENT;
+					lastBlocker.x += DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_UP:
-					rayBlocker.y -= DIRECTION_INCREMENT;
+					lastBlocker.y -= DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_DOWN:
-					rayBlocker.y += DIRECTION_INCREMENT;
+					lastBlocker.y += DIRECTION_INCREMENT;
+					break;
+
+				case SDLK_SPACE:
+					blockers.clear();
 					break;
 
 				default:
@@ -171,8 +177,9 @@ private:
 		SDL_Rect blankScreen = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
 		SDL_FillRect(surface, &blankScreen, COLOUR_BL);
 		drawCircle(surface, rayOrigin);
-		drawCircle(surface, rayBlocker);
-		drawCircle(surface, rayBlocker2);
+		for (Circle* blocker : blockers) {
+			drawCircle(surface, *blocker);
+		}
 		drawRays(surface, rayOrigin, blockers);
 		SDL_UpdateWindowSurface(window);
 	}
@@ -184,13 +191,8 @@ private:
 	}
 public:
 	RayTracer()
-		: rayOrigin(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 50),
-		rayBlocker(1300, WINDOW_HEIGHT / 2, 200),
-		rayBlocker2(300, WINDOW_HEIGHT / 2, 200),
-		running(1) {
-		blockers.push_back(&rayBlocker);
-		blockers.push_back(&rayBlocker2);
-	}
+		: rayOrigin(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 50)
+	{}
 
 	void setRayCount(int rays) {
 		if (rays > 0 and rays <= MAX_RAYS) {
