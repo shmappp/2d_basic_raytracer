@@ -13,6 +13,7 @@
 #define MAX_RAYS 2000
 #define DIRECTION_INCREMENT 5
 #define BLOCKER_SIZE 125
+#define DEFAULT_RAY_COUNT 200
 
 class Shape {
 public:
@@ -53,8 +54,8 @@ private:
 	SDL_Window* window;
 	SDL_Surface* surface;
 	std::vector<Circle*> blockers;
-	int rayCount = 200;
-	Circle lastBlocker = Circle(0, 0, 0);
+	int rayCount;
+	Circle* lastBlocker;
 	Circle rayOrigin;
 
 	void drawRect(SDL_Surface* surface, SDL_Rect* rect) {
@@ -142,24 +143,25 @@ private:
 
 			case SDL_MOUSEBUTTONDOWN:
 				blockers.push_back(new Circle(event.motion.x, event.motion.y, BLOCKER_SIZE));
+				lastBlocker = blockers[blockers.size() - 1];
 				break;
 
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym) {
 				case SDLK_LEFT:
-					lastBlocker.x -= DIRECTION_INCREMENT;
+					lastBlocker->x -= DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_RIGHT:
-					lastBlocker.x += DIRECTION_INCREMENT;
+					lastBlocker->x += DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_UP:
-					lastBlocker.y -= DIRECTION_INCREMENT;
+					lastBlocker->y -= DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_DOWN:
-					lastBlocker.y += DIRECTION_INCREMENT;
+					lastBlocker->y += DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_SPACE:
@@ -191,7 +193,9 @@ private:
 	}
 public:
 	RayTracer()
-		: rayOrigin(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 50)
+		: rayOrigin(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 50),
+		  lastBlocker(new Circle(0, 0, 0)),
+		  rayCount(DEFAULT_RAY_COUNT)
 	{}
 
 	void setRayCount(int rays) {
