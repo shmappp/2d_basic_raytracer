@@ -3,14 +3,19 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
+#ifdef __EMSCRIPTEN__
+	#include <emscripten.h>
+#endif
 
 
 #define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 900
 #define COLOUR_W 0xffffffff
 #define COLOUR_BL 0x00000000
-#define NUM_RAYS 500
+#define MAX_RAYS 2000
 #define DIRECTION_INCREMENT 5
+#define BLOCKER_SIZE 125
+#define DEFAULT_RAY_COUNT 200
 
 class Shape {
 public:
@@ -43,17 +48,15 @@ std::ostream& operator<<(std::ostream& os, const Ray& ray) {
 	return os;
 }
 
-
-
 class RayTracer {
 
 private:
 	SDL_Window* window;
 	SDL_Surface* surface;
 	std::vector<Circle*> blockers;
+	int rayCount;
+	Circle* lastBlocker;
 	Circle rayOrigin;
-	Circle rayBlocker;
-	Circle rayBlocker2;
 	int running;
 
 	void drawRect(SDL_Surface* surface, SDL_Rect* rect) {
@@ -83,9 +86,9 @@ private:
 	std::vector<Ray> generateRaySet(Circle circle) {
 		std::vector<Ray> rays;
 
-		double angleSlice = 2 * M_PI / NUM_RAYS; // in radians
+		double angleSlice = 2 * M_PI / rayCount; // in radians
 
-		for (int i = 0; i < NUM_RAYS; i++) {
+		for (int i = 0; i < rayCount; i++) {
 			Ray ray = { circle.x, circle.y, angleSlice * (i + 1) };
 			rays.push_back(ray);
 		}
@@ -140,22 +143,31 @@ private:
 				rayOrigin.y = event.motion.y;
 				break;
 
+			case SDL_MOUSEBUTTONDOWN:
+				blockers.push_back(new Circle(event.motion.x, event.motion.y, BLOCKER_SIZE));
+				lastBlocker = blockers[blockers.size() - 1];
+				break;
+
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym) {
 				case SDLK_LEFT:
-					rayBlocker.x -= DIRECTION_INCREMENT;
+					lastBlocker->x -= DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_RIGHT:
-					rayBlocker.x += DIRECTION_INCREMENT;
+					lastBlocker->x += DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_UP:
-					rayBlocker.y -= DIRECTION_INCREMENT;
+					lastBlocker->y -= DIRECTION_INCREMENT;
 					break;
 
 				case SDLK_DOWN:
-					rayBlocker.y += DIRECTION_INCREMENT;
+					lastBlocker->y += DIRECTION_INCREMENT;
+					break;
+
+				case SDLK_SPACE:
+					blockers.clear();
 					break;
 
 				default:
@@ -169,8 +181,9 @@ private:
 		SDL_Rect blankScreen = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
 		SDL_FillRect(surface, &blankScreen, COLOUR_BL);
 		drawCircle(surface, rayOrigin);
-		drawCircle(surface, rayBlocker);
-		drawCircle(surface, rayBlocker2);
+		for (Circle* blocker : blockers) {
+			drawCircle(surface, *blocker);
+		}
 		drawRays(surface, rayOrigin, blockers);
 		SDL_UpdateWindowSurface(window);
 	}
@@ -183,11 +196,15 @@ private:
 public:
 	RayTracer()
 		: rayOrigin(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 50),
-		rayBlocker(1300, WINDOW_HEIGHT / 2, 200),
-		rayBlocker2(300, WINDOW_HEIGHT / 2, 200),
-		running(1) {
-		blockers.push_back(&rayBlocker);
-		blockers.push_back(&rayBlocker2);
+		  lastBlocker(new Circle(0, 0, 0)),
+		  rayCount(DEFAULT_RAY_COUNT),
+		  running(1)
+	{}
+
+	void setRayCount(int rays) {
+		if (rays > 0 && rays <= MAX_RAYS) {
+			rayCount = rays;
+		}
 	}
 
 	bool init() {
@@ -206,15 +223,32 @@ public:
 
 	void run() {
 		if (!init()) return;
+		#ifdef __EMSCRIPTEN__
+			emscripten_set_main_loop_arg(mainLoop, this, 0, 1);
+		#else
 		while (running) {
-			processInput();
-			render();
+			mainLoop(this);
 		}
+		#endif
+
 	}
 };
 
+RayTracer* g_rayTracer = nullptr;
+
+#ifdef __EMSCRIPTEN__
+extern "C" {
+	EMSCRIPTEN_KEEPALIVE void setCountRays(int rays) {
+		if (g_rayTracer) {
+			g_rayTracer->setRayCount(rays);
+		}
+	}
+}
+#endif
+
 int main(int argc, char* argv[]) {
 	RayTracer raytracer;
+	g_rayTracer = &raytracer;
 	raytracer.run();
 	return 0;
 }
